@@ -2,6 +2,58 @@ module Bingo exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Html.Events exposing (onClick)
+
+
+-- MODEL
+
+
+type alias Model =
+    { name : String
+    , gameNumber : Int
+    , entries : List Entry
+    }
+
+
+type alias Entry =
+    { id : Int
+    , phrase : String
+    , points : Int
+    , marked : Bool
+    }
+
+
+initialModel : Model
+initialModel =
+    Model "Mike" 1 initialEntries
+
+
+initialEntries : List Entry
+initialEntries =
+    [ Entry 1 "Future-Proof" 100 False
+    , Entry 2 "Doing Agile" 200 False
+    , Entry 3 "In the Cloud" 300 False
+    , Entry 4 "Rock-Star Ninja" 400 False
+    ]
+
+
+
+-- UPDATE
+
+
+type Msg
+    = NewGame
+
+
+update : Msg -> Model -> Model
+update msg model =
+    case msg of
+        NewGame ->
+            { model | gameNumber = model.gameNumber + 1 }
+
+
+
+-- VIEW
 
 
 playerInfo : String -> Int -> String
@@ -9,7 +61,7 @@ playerInfo name gameNumber =
     name ++ " - Game # " ++ (toString gameNumber)
 
 
-viewPlayer : String -> Int -> Html msg
+viewPlayer : String -> Int -> Html Msg
 viewPlayer name gameNumber =
     let
         playerInfoText =
@@ -21,13 +73,13 @@ viewPlayer name gameNumber =
             [ playerInfoText ]
 
 
-viewHeader : String -> Html msg
+viewHeader : String -> Html Msg
 viewHeader title =
     header []
         [ h1 [] [ text title ] ]
 
 
-viewFooter : Html msg
+viewFooter : Html Msg
 viewFooter =
     footer []
         [ a [ href "http://elm-lang.org" ]
@@ -35,15 +87,44 @@ viewFooter =
         ]
 
 
-view : Html msg
-view =
+viewEntryItem : Entry -> Html Msg
+viewEntryItem entry =
+    li []
+        [ span [ class "phrase" ] [ text entry.phrase ]
+        , span [ class "points" ] [ text (toString entry.points) ]
+        ]
+
+
+viewEntryList : List Entry -> Html Msg
+viewEntryList entries =
+    entries
+        |> List.map viewEntryItem
+        |> ul []
+
+
+view : Model -> Html Msg
+view model =
     div [ class "content" ]
         [ viewHeader "BUZZWORD BINGO"
-        , viewPlayer "Nicole" 4
+        , viewPlayer model.name model.gameNumber
+        , viewEntryList model.entries
+        , div [ class "button-group" ]
+            [ button [ onClick NewGame ] [ text "New Game" ] ]
+        , div [ class "debug" ] [ text (toString model) ]
         , viewFooter
         ]
 
 
-main : Html msg
+
+-- main : Html Msg
+-- main =
+--     view initialModel
+
+
+main : Program Never Model Msg
 main =
-    view
+    Html.beginnerProgram
+        { model = initialModel
+        , view = view
+        , update = update
+        }
