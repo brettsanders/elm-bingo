@@ -50,7 +50,10 @@ update : Msg -> Model -> Model
 update msg model =
     case msg of
         NewGame ->
-            { model | gameNumber = model.gameNumber + 1 }
+            { model
+                | gameNumber = model.gameNumber + 1
+                , entries = initialEntries
+            }
 
         Mark id ->
             let
