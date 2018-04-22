@@ -8,6 +8,8 @@ import Http
 import Json.Decode as Decode exposing (Decoder, field, succeed)
 
 
+-- ABOUT
+-- elm-live Bingo.elm --open --warn --debug --output=bingo.js
 -- DECODERS
 
 
@@ -28,6 +30,7 @@ type alias Model =
     { name : String
     , gameNumber : Int
     , entries : List Entry
+    , alertMessage : Maybe String
     }
 
 
@@ -41,7 +44,11 @@ type alias Entry =
 
 initialModel : Model
 initialModel =
-    Model "Brett" 1 []
+    { name = "Brett"
+    , gameNumber = 1
+    , entries = []
+    , alertMessage = Nothing
+    }
 
 
 
@@ -54,6 +61,7 @@ type Msg
     | Sort
     | NewRandom Int
     | NewEntries (Result Http.Error (List Entry))
+    | CloseAlert
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -70,10 +78,24 @@ update msg model =
 
         NewEntries (Err error) ->
             let
-                _ =
-                    Debug.log "Oops!" error
+                errorMessage =
+                    case error of
+                        Http.NetworkError ->
+                            "Is the server running?"
+
+                        Http.BadStatus response ->
+                            (toString response.status)
+
+                        Http.BadPayload message _ ->
+                            "Decoding Failed: " ++ message
+
+                        _ ->
+                            (toString error)
             in
-                ( model, Cmd.none )
+                ( { model | alertMessage = Just errorMessage }, Cmd.none )
+
+        CloseAlert ->
+            ( { model | alertMessage = Nothing }, Cmd.none )
 
         Mark id ->
             let
@@ -188,11 +210,25 @@ viewScore sum =
         ]
 
 
+viewAlertMessage : Maybe String -> Html Msg
+viewAlertMessage alertMessage =
+    case alertMessage of
+        Just message ->
+            div [ class "alert" ]
+                [ span [ class "close", onClick CloseAlert ] [ text "X" ]
+                , text message
+                ]
+
+        Nothing ->
+            text ""
+
+
 view : Model -> Html Msg
 view model =
     div [ class "content" ]
         [ viewHeader "BUZZWORD BINGO"
         , viewPlayer model.name model.gameNumber
+        , viewAlertMessage model.alertMessage
         , viewEntryList model.entries
         , viewScore (sumMarkedPoints model.entries)
         , div [ class "button-group" ]
