@@ -232,6 +232,11 @@ viewPlayer name gameNumber =
             [ playerInfoText ]
 
 
+hasZeroScore : Model -> Bool
+hasZeroScore model =
+    (sumMarkedPoints model.entries) == 0
+
+
 viewHeader : String -> Html Msg
 viewHeader title =
     header []
@@ -272,10 +277,6 @@ sumMarkedPoints entries =
         |> List.sum
 
 
-
--- |> List.foldl (\e sum -> sum + e.points) 0
-
-
 viewScore : Int -> Html msg
 viewScore sum =
     div
@@ -308,7 +309,7 @@ view model =
         , viewScore (sumMarkedPoints model.entries)
         , div [ class "button-group" ]
             [ button [ onClick NewGame ] [ text "New Game" ]
-            , button [ onClick ShareScore ] [ text "Share Score" ]
+            , button [ onClick ShareScore, disabled (hasZeroScore model) ] [ text "Share Score" ]
             ]
         , button [ onClick Sort ] [ text "Sort" ]
         , div [ class "debug" ] [ text (toString model) ]
