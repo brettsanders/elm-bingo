@@ -1,3 +1,7 @@
+-- ABOUT
+-- elm-live Bingo.elm --open --warn --debug --output=bingo.js
+
+
 module Bingo exposing (..)
 
 import Html exposing (..)
@@ -6,10 +10,9 @@ import Html.Events exposing (onClick)
 import Random
 import Http
 import Json.Decode as Decode exposing (Decoder, field, succeed)
+import Json.Encode as Encode
 
 
--- ABOUT
--- elm-live Bingo.elm --open --warn --debug --output=bingo.js
 -- DECODERS
 
 
@@ -20,6 +23,22 @@ entryDecoder =
         (field "phrase" Decode.string)
         (field "points" Decode.int)
         (succeed False)
+
+
+scoreDecoder : Decoder Score
+scoreDecoder =
+    Decode.map3 Score
+        (field "id" Decode.int)
+        (field "name" Decode.string)
+        (field "score" Decode.int)
+
+
+encodeScore : Model -> Encode.Value
+encodeScore model =
+    Encode.object
+        [ ( "name", Encode.string model.name )
+        , ( "score", Encode.int (sumMarkedPoints model.entries) )
+        ]
 
 
 
@@ -39,6 +58,13 @@ type alias Entry =
     , phrase : String
     , points : Int
     , marked : Bool
+    }
+
+
+type alias Score =
+    { id : Int
+    , name : String
+    , score : Int
     }
 
 
@@ -62,6 +88,8 @@ type Msg
     | NewRandom Int
     | NewEntries (Result Http.Error (List Entry))
     | CloseAlert
+    | ShareScore
+    | NewScore (Result Http.Error Score)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -69,6 +97,26 @@ update msg model =
     case msg of
         NewRandom randomNumber ->
             ( { model | gameNumber = randomNumber }, Cmd.none )
+
+        ShareScore ->
+            ( model, postScore model )
+
+        NewScore (Ok score) ->
+            let
+                message =
+                    "Your score of "
+                        ++ (toString score.score)
+                        ++ " was successfully shared!"
+            in
+                ( { model | alertMessage = Just message }, Cmd.none )
+
+        NewScore (Err error) ->
+            let
+                message =
+                    "Error posting your score: "
+                        ++ (toString error)
+            in
+                ( { model | alertMessage = Just message }, Cmd.none )
 
         NewGame ->
             ( { model | gameNumber = model.gameNumber + 1 }, getEntries )
@@ -135,15 +183,31 @@ generateRandomNumber =
     Random.generate NewRandom (Random.int 1 100)
 
 
-entriesUrl : String
-entriesUrl =
-    "http://localhost:3000/random-entries"
+apiUrlPrefix : String
+apiUrlPrefix =
+    "http://localhost:3000"
+
+
+postScore : Model -> Cmd Msg
+postScore model =
+    let
+        url =
+            (apiUrlPrefix ++ "/scores")
+
+        body =
+            encodeScore model
+                |> Http.jsonBody
+
+        request =
+            Http.post url body scoreDecoder
+    in
+        Http.send NewScore request
 
 
 getEntries : Cmd Msg
 getEntries =
     (Decode.list entryDecoder)
-        |> Http.get entriesUrl
+        |> Http.get (apiUrlPrefix ++ "/random-entries")
         |> Http.send NewEntries
 
 
@@ -243,7 +307,9 @@ view model =
         , viewEntryList model.entries
         , viewScore (sumMarkedPoints model.entries)
         , div [ class "button-group" ]
-            [ button [ onClick NewGame ] [ text "New Game" ] ]
+            [ button [ onClick NewGame ] [ text "New Game" ]
+            , button [ onClick ShareScore ] [ text "Share Score" ]
+            ]
         , button [ onClick Sort ] [ text "Sort" ]
         , div [ class "debug" ] [ text (toString model) ]
         , viewFooter
