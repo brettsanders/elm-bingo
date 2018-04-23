@@ -83,14 +83,25 @@ update msg model =
                         Http.NetworkError ->
                             "Is the server running?"
 
+                        Http.Timeout ->
+                            "Request timed out!"
+
+                        Http.BadUrl url ->
+                            ("invalid URL: " ++ url)
+
                         Http.BadStatus response ->
-                            (toString response.status)
+                            case response.status.code of
+                                401 ->
+                                    "Unauthorized"
+
+                                404 ->
+                                    "Not Found"
+
+                                code ->
+                                    (toString code)
 
                         Http.BadPayload message _ ->
                             "Decoding Failed: " ++ message
-
-                        _ ->
-                            (toString error)
             in
                 ( { model | alertMessage = Just errorMessage }, Cmd.none )
 
