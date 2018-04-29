@@ -70,7 +70,7 @@ type alias Score =
 
 initialModel : Model
 initialModel =
-    { name = "Brett"
+    { name = "Anonymous"
     , gameNumber = 1
     , entries = []
     , alertMessage = Nothing
@@ -291,7 +291,9 @@ viewAlertMessage alertMessage =
     case alertMessage of
         Just message ->
             div [ class "alert" ]
-                [ span [ class "close", onClick CloseAlert ] [ text "X" ]
+                [ span
+                    [ class "close", onClick CloseAlert ]
+                    [ text "X" ]
                 , text message
                 ]
 
@@ -305,15 +307,34 @@ view model =
         [ viewHeader "BUZZWORD BINGO"
         , viewPlayer model.name model.gameNumber
         , viewAlertMessage model.alertMessage
+        , viewNameInput model
         , viewEntryList model.entries
         , viewScore (sumMarkedPoints model.entries)
         , div [ class "button-group" ]
             [ button [ onClick NewGame ] [ text "New Game" ]
-            , button [ onClick ShareScore, disabled (hasZeroScore model) ] [ text "Share Score" ]
+            , button
+                [ onClick ShareScore
+                , disabled (hasZeroScore model)
+                ]
+                [ text "Share Score" ]
             ]
         , button [ onClick Sort ] [ text "Sort" ]
         , div [ class "debug" ] [ text (toString model) ]
         , viewFooter
+        ]
+
+
+viewNameInput : Model -> Html Msg
+viewNameInput model =
+    div [ class "name-input" ]
+        [ input
+            [ type_ "text"
+            , placeholder "Who's playing?"
+            , autofocus True
+            ]
+            []
+        , button [] [ text "Save" ]
+        , button [] [ text "Cancel" ]
         ]
 
 
