@@ -6,7 +6,7 @@ module Bingo exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onInput)
 import Random
 import Http
 import Json.Decode as Decode exposing (Decoder, field, succeed)
@@ -90,11 +90,15 @@ type Msg
     | CloseAlert
     | ShareScore
     | NewScore (Result Http.Error Score)
+    | SetNameInput String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        SetNameInput value ->
+            ( { model | name = value }, Cmd.none )
+
         NewRandom randomNumber ->
             ( { model | gameNumber = randomNumber }, Cmd.none )
 
@@ -331,6 +335,7 @@ viewNameInput model =
             [ type_ "text"
             , placeholder "Who's playing?"
             , autofocus True
+            , onInput SetNameInput
             ]
             []
         , button [] [ text "Save" ]
