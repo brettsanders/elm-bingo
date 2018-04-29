@@ -58,35 +58,6 @@ initialModel =
 
 
 
--- DECODERS
-
-
-entryDecoder : Decoder Entry
-entryDecoder =
-    Decode.map4 Entry
-        (field "id" Decode.int)
-        (field "phrase" Decode.string)
-        (field "points" Decode.int)
-        (succeed False)
-
-
-scoreDecoder : Decoder Score
-scoreDecoder =
-    Decode.map3 Score
-        (field "id" Decode.int)
-        (field "name" Decode.string)
-        (field "score" Decode.int)
-
-
-encodeScore : Model -> Encode.Value
-encodeScore model =
-    Encode.object
-        [ ( "name", Encode.string model.name )
-        , ( "score", Encode.int (sumMarkedPoints model.entries) )
-        ]
-
-
-
 -- UPDATE
 
 
@@ -164,33 +135,7 @@ update msg model =
             ( { model | entries = randomEntries }, Cmd.none )
 
         NewEntries (Err error) ->
-            let
-                errorMessage =
-                    case error of
-                        Http.NetworkError ->
-                            "Is the server running?"
-
-                        Http.Timeout ->
-                            "Request timed out!"
-
-                        Http.BadUrl url ->
-                            ("invalid URL: " ++ url)
-
-                        Http.BadStatus response ->
-                            case response.status.code of
-                                401 ->
-                                    "Unauthorized"
-
-                                404 ->
-                                    "Not Found"
-
-                                code ->
-                                    (toString code)
-
-                        Http.BadPayload message _ ->
-                            "Decoding Failed: " ++ message
-            in
-                ( { model | alertMessage = Just errorMessage }, Cmd.none )
+            ( { model | alertMessage = Just (httpErrorToMessage error) }, Cmd.none )
 
         CloseAlert ->
             ( { model | alertMessage = Nothing }, Cmd.none )
@@ -211,6 +156,33 @@ update msg model =
             ( { model | entries = List.sortBy .points model.entries }
             , Cmd.none
             )
+
+
+httpErrorToMessage : Http.Error -> String
+httpErrorToMessage error =
+    case error of
+        Http.NetworkError ->
+            "Is the server running?"
+
+        Http.Timeout ->
+            "Request timed out!"
+
+        Http.BadUrl url ->
+            ("invalid URL: " ++ url)
+
+        Http.BadStatus response ->
+            case response.status.code of
+                401 ->
+                    "Unauthorized"
+
+                404 ->
+                    "Not Found"
+
+                code ->
+                    (toString code)
+
+        Http.BadPayload message _ ->
+            "Decoding Failed: " ++ message
 
 
 
@@ -384,3 +356,32 @@ main =
         , update = update
         , subscriptions = (\_ -> Sub.none)
         }
+
+
+
+-- DECODERS
+
+
+entryDecoder : Decoder Entry
+entryDecoder =
+    Decode.map4 Entry
+        (field "id" Decode.int)
+        (field "phrase" Decode.string)
+        (field "points" Decode.int)
+        (succeed False)
+
+
+scoreDecoder : Decoder Score
+scoreDecoder =
+    Decode.map3 Score
+        (field "id" Decode.int)
+        (field "name" Decode.string)
+        (field "score" Decode.int)
+
+
+encodeScore : Model -> Encode.Value
+encodeScore model =
+    Encode.object
+        [ ( "name", Encode.string model.name )
+        , ( "score", Encode.int (sumMarkedPoints model.entries) )
+        ]
