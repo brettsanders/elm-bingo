@@ -50,6 +50,7 @@ type alias Model =
     , gameNumber : Int
     , entries : List Entry
     , alertMessage : Maybe String
+    , nameInput : String
     }
 
 
@@ -74,6 +75,7 @@ initialModel =
     , gameNumber = 1
     , entries = []
     , alertMessage = Nothing
+    , nameInput = ""
     }
 
 
@@ -91,13 +93,21 @@ type Msg
     | ShareScore
     | NewScore (Result Http.Error Score)
     | SetNameInput String
+    | SaveName
+    | CancelName
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        SaveName ->
+            ( { model | name = model.nameInput, nameInput = "" }, Cmd.none )
+
+        CancelName ->
+            ( { model | nameInput = "" }, Cmd.none )
+
         SetNameInput value ->
-            ( { model | name = value }, Cmd.none )
+            ( { model | nameInput = value }, Cmd.none )
 
         NewRandom randomNumber ->
             ( { model | gameNumber = randomNumber }, Cmd.none )
@@ -335,11 +345,12 @@ viewNameInput model =
             [ type_ "text"
             , placeholder "Who's playing?"
             , autofocus True
+            , value model.nameInput
             , onInput SetNameInput
             ]
             []
-        , button [] [ text "Save" ]
-        , button [] [ text "Cancel" ]
+        , button [ onClick SaveName ] [ text "Save" ]
+        , button [ onClick CancelName ] [ text "Cancel" ]
         ]
 
 
