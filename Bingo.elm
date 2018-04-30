@@ -309,14 +309,19 @@ view model =
         , viewEntryList model.entries
         , viewScore (sumMarkedPoints model.entries)
         , div [ class "button-group" ]
-            [ button [ onClick NewGame ] [ text "New Game" ]
+            [ primaryButton NewGame "New Game"
             , button
-                [ onClick ShareScore
+                [ class "primary"
+                , onClick ShareScore
                 , disabled (hasZeroScore model)
                 ]
                 [ text "Share Score" ]
             ]
-        , button [ onClick Sort ] [ text "Sort" ]
+        , button
+            [ class "primary"
+            , onClick Sort
+            ]
+            [ text "Sort" ]
         , div [ class "debug" ] [ text (toString model) ]
         , viewFooter
         ]
@@ -335,12 +340,17 @@ viewNameInput model =
                     , onInput SetNameInput
                     ]
                     []
-                , button [ onClick SaveName ] [ text "Save" ]
-                , button [ onClick CancelName ] [ text "Cancel" ]
+                , primaryButton SaveName "Save"
+                , primaryButton CancelName "Cancel"
                 ]
 
         Playing ->
             text ""
+
+
+primaryButton : Msg -> String -> Html Msg
+primaryButton msg name =
+    button [ class "primary", onClick msg ] [ text name ]
 
 
 main : Program Never Model Msg
