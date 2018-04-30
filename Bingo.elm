@@ -11,6 +11,7 @@ import Random
 import Http
 import Json.Decode as Decode exposing (Decoder, field, succeed)
 import Json.Encode as Encode
+import ViewHelpers exposing (..)
 
 
 -- MODEL
@@ -284,27 +285,12 @@ viewScore sum =
         ]
 
 
-viewAlertMessage : Maybe String -> Html Msg
-viewAlertMessage alertMessage =
-    case alertMessage of
-        Just message ->
-            div [ class "alert" ]
-                [ span
-                    [ class "close", onClick CloseAlert ]
-                    [ text "X" ]
-                , text message
-                ]
-
-        Nothing ->
-            text ""
-
-
 view : Model -> Html Msg
 view model =
     div [ class "content" ]
         [ viewHeader "BUZZWORD BINGO"
         , viewPlayer model.name model.gameNumber
-        , viewAlertMessage model.alertMessage
+        , alert CloseAlert model.alertMessage
         , viewNameInput model
         , viewEntryList model.entries
         , viewScore (sumMarkedPoints model.entries)
@@ -346,11 +332,6 @@ viewNameInput model =
 
         Playing ->
             text ""
-
-
-primaryButton : Msg -> String -> Html Msg
-primaryButton msg name =
-    button [ class "primary", onClick msg ] [ text name ]
 
 
 main : Program Never Model Msg
