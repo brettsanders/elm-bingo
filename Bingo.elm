@@ -121,12 +121,7 @@ update msg model =
                 ( { model | alertMessage = Just message }, Cmd.none )
 
         NewScore (Err error) ->
-            let
-                message =
-                    "Error posting your score: "
-                        ++ (toString error)
-            in
-                ( { model | alertMessage = Just message }, Cmd.none )
+            ( { model | alertMessage = Just (httpErrorToMessage error) }, Cmd.none )
 
         NewGame ->
             ( { model | gameNumber = model.gameNumber + 1 }, getEntries )
