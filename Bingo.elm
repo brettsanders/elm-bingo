@@ -12,6 +12,7 @@ import Http
 import Json.Decode as Decode exposing (Decoder, field, succeed)
 import Json.Encode as Encode
 import ViewHelpers exposing (..)
+import Entry
 
 
 -- MODEL
@@ -25,18 +26,10 @@ type GameState
 type alias Model =
     { name : String
     , gameNumber : Int
-    , entries : List Entry
+    , entries : List Entry.Entry
     , alertMessage : Maybe String
     , nameInput : String
     , gameState : GameState
-    }
-
-
-type alias Entry =
-    { id : Int
-    , phrase : String
-    , points : Int
-    , marked : Bool
     }
 
 
@@ -67,7 +60,7 @@ type Msg
     | Mark Int
     | Sort
     | NewRandom Int
-    | NewEntries (Result Http.Error (List Entry))
+    | NewEntries (Result Http.Error (List Entry.Entry))
     | CloseAlert
     | ShareScore
     | NewScore (Result Http.Error Score)
@@ -137,16 +130,7 @@ update msg model =
             ( { model | alertMessage = Nothing }, Cmd.none )
 
         Mark id ->
-            let
-                markEntry e =
-                    if e.id == id then
-                        { e | marked = (not e.marked) }
-                    else
-                        e
-            in
-                ( { model | entries = List.map markEntry model.entries }
-                , Cmd.none
-                )
+            ( { model | entries = Entry.markEntryWithId model.entries id }, Cmd.none )
 
         Sort ->
             ( { model | entries = List.sortBy .points model.entries }
@@ -213,9 +197,7 @@ postScore model =
 
 getEntries : Cmd Msg
 getEntries =
-    (Decode.list entryDecoder)
-        |> Http.get (apiUrlPrefix ++ "/random-entries")
-        |> Http.send NewEntries
+    Entry.getEntries NewEntries (apiUrlPrefix ++ "/random-entries")
 
 
 
@@ -233,7 +215,7 @@ viewPlayer name gameNumber =
 
 hasZeroScore : Model -> Bool
 hasZeroScore model =
-    (sumMarkedPoints model.entries) == 0
+    (Entry.sumMarkedPoints model.entries) == 0
 
 
 viewHeader : String -> Html Msg
@@ -248,32 +230,6 @@ viewFooter =
         [ a [ href "http://elm-lang.org" ]
             [ text "Powered By Elm" ]
         ]
-
-
-viewEntryItem : Entry -> Html Msg
-viewEntryItem entry =
-    li
-        [ classList [ ( "marked", entry.marked ) ]
-        , onClick (Mark entry.id)
-        ]
-        [ span [ class "phrase" ] [ text entry.phrase ]
-        , span [ class "points" ] [ text (toString entry.points) ]
-        ]
-
-
-viewEntryList : List Entry -> Html Msg
-viewEntryList entries =
-    entries
-        |> List.map viewEntryItem
-        |> ul []
-
-
-sumMarkedPoints : List Entry -> Int
-sumMarkedPoints entries =
-    entries
-        |> List.filter .marked
-        |> List.map .points
-        |> List.sum
 
 
 viewScore : Int -> Html msg
@@ -292,8 +248,8 @@ view model =
         , viewPlayer model.name model.gameNumber
         , alert CloseAlert model.alertMessage
         , viewNameInput model
-        , viewEntryList model.entries
-        , viewScore (sumMarkedPoints model.entries)
+        , Entry.viewEntryList Mark model.entries
+        , viewScore (Entry.sumMarkedPoints model.entries)
         , div [ class "button-group" ]
             [ primaryButton NewGame "New Game"
             , button
@@ -348,15 +304,6 @@ main =
 -- DECODERS
 
 
-entryDecoder : Decoder Entry
-entryDecoder =
-    Decode.map4 Entry
-        (field "id" Decode.int)
-        (field "phrase" Decode.string)
-        (field "points" Decode.int)
-        (succeed False)
-
-
 scoreDecoder : Decoder Score
 scoreDecoder =
     Decode.map3 Score
@@ -369,5 +316,5 @@ encodeScore : Model -> Encode.Value
 encodeScore model =
     Encode.object
         [ ( "name", Encode.string model.name )
-        , ( "score", Encode.int (sumMarkedPoints model.entries) )
+        , ( "score", Encode.int (Entry.sumMarkedPoints model.entries) )
         ]
